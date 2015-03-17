@@ -220,8 +220,9 @@ class JSREPL extends EventEmitter
       server_input: =>
         @fire 'input', (data) =>
           @sandbox.fire 'recieved_input', [data]
-
-          url = (input_server.url || '/emscripten/input/') + input_server.input_id
+          # Note: we increment the input_id after each request to avoid race
+          # conditions on the server. Keep this code in sync with sandbox.js
+          url = (input_server.url || '/emscripten/input/') + input_server.input_id++
           if input_server.cors
             xhr = new XMLHttpRequest()
             if 'withCredentials' of xhr
@@ -234,6 +235,10 @@ class JSREPL extends EventEmitter
           else
             xhr = new XMLHttpRequest()
             xhr.open 'POST', url, true
+          xhr.setRequestHeader(
+            'Content-Type',
+            'application/x-www-form-urlencoded; charset=UTF-8'
+          )
           xhr.send "input=#{data}"
     
   # Only listen to input events to abstract all input types.

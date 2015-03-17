@@ -6,6 +6,7 @@ fs = require 'fs'
 path = require 'path'
 coffee = require 'coffee-script'
 {exec} = require 'child_process'
+crypto = require 'crypto'
 
 #------------------------------------------------------------------------------#
 #                                    Config                                    #
@@ -18,7 +19,7 @@ YUI_COMPRESSOR_PATH = './tools/yuicompressor-2.4.6/build/yuicompressor-2.4.6.jar
 MINIFIERS =
   none: 'cat '
   yui: "java -jar #{YUI_COMPRESSOR_PATH} --type js "
-  uglify: 'uglifyjs -nc --unsafe '
+  uglify: 'uglifyjs '
   closure: "java -Xmx4g -jar #{CLOSURE_COMPILER_PATH} --compilation_level SIMPLE_OPTIMIZATIONS --js "
   closure_es5: "java -Xmx4g -jar #{CLOSURE_COMPILER_PATH} --language_in=ECMASCRIPT5 --compilation_level SIMPLE_OPTIMIZATIONS --js "
   closure_advanced: "java -Xmx4g -jar #{CLOSURE_COMPILER_PATH} --compilation_level ADVANCED_OPTIMIZATIONS --js "
@@ -71,7 +72,9 @@ buildEngine = (name, lang, callback) ->
   compileCoffee lang.engine
   lang.engine = lang.engine.replace /\.coffee$/, '.js'
   ensurePathExists 'build/' + lang.engine
-  minify lang.engine, 'build/' + lang.engine, DEFAULT_MINIFIER, ->
+  minify lang.engine, 'build/' + lang.engine, DEFAULT_MINIFIER, (checksum) ->
+    lang.engine += '?' + checksum
+
     # Copy non-JS dependencies.
     for include in lang.includes
       ensurePathExists 'build/' + include
@@ -105,20 +108,29 @@ buildEngine = (name, lang, callback) ->
         console.log "  Creating the #{build_target} build."
         if scripts.length
           min_path = "engines/#{name}-#{build_target}.js"
-          lang.scripts[0][build_target] = [min_path]
-          squash scripts, min_path, MINIFIERS[lang.minifier], doNextBuild
+          squash scripts, min_path, MINIFIERS[lang.minifier], (checksum) ->
+            lang.scripts[0][build_target] = [min_path + '?' + checksum]
+            doNextBuild()
         else
           doNextBuild()
     doNextBuild()
 
 # Passes a given file through a minifier child process and calls back when done.
 minify = (src, dest, minifier, callback) ->
+  console.log "   minifying #{src} using #{minifier}"
   exec "#{minifier} #{src}", maxBuffer: 1 << 23, (error, minified) ->
     if error
       console.log "Minifying #{src} failed:\n#{error.message}."
       process.exit 1
     fs.writeFileSync dest, minified
-    if callback then callback()
+    if callback then callback(checksum(minified))
+
+
+checksum = (content) ->
+  return crypto
+    .createHash('md5')
+    .update(content, 'utf8')
+    .digest('hex')
 
 # Writes the specified languages list to languages.js
 buildLanguagesList = (langs) ->

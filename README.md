@@ -1,3 +1,10 @@
+- - -
+
+**_Deprecation notice_: This project is no longer actively maintained because we're moving language sandboxes to the server for a faster, complete, and up-to-date implementations. <a href="http://repl.it/api">You can use our API</a>.**
+
+- - -
+
+
 #JSREPL  
   
 A sandboxed polyglot browser REPL.  
@@ -47,8 +54,12 @@ A sandboxed polyglot browser REPL.
 `curl http://npmjs.org/install.sh | sh`
    
 ##### [CoffeeScript](http://jashkenas.github.com/coffee-script/)
-Using npm (has to be version 1.2.0):
-`npm install -g coffee-script@1.2.0`
+Using npm :
+`sudo npm install -g coffee-script`
+
+##### [UglifyJS](https://github.com/mishoo/UglifyJS)
+Using npm :
+`sudo npm install -g uglify-js`
 
 #### Getting the source
 ##### Cloning the repository
